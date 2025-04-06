@@ -1,7 +1,7 @@
-# This workflow will build a .NET project
+# This workflow will build and publish a .NET project to NuGet.org
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-net
 
-name: .NET
+name: Build and Publish
 
 on:
   push:
@@ -10,8 +10,7 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build:
-
+  build-and-publish:
     runs-on: ubuntu-latest
 
     steps:
@@ -20,9 +19,20 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 8.0.x
+    
     - name: Restore dependencies
       run: dotnet restore
+    
     - name: Build
-      run: dotnet build --no-restore
+      run: dotnet build --configuration Release --no-restore
+    
     - name: Test
-      run: dotnet test --no-build --verbosity normal
+      run: dotnet test --configuration Release --no-build --verbosity normal
+    
+    - name: Pack
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      run: dotnet pack --configuration Release --no-build --output ./nupkgs
+    
+    - name: Publish to NuGet
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      run: dotnet nuget push ./nupkgs/*.nupkg --api-key ${{ secrets.PUBLISH_TOKEN }} --source https://api.nuget.org/v3/index.json
