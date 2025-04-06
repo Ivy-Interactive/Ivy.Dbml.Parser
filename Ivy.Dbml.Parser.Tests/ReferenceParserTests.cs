@@ -42,17 +42,7 @@ Ref: posts.user_id > users.id";
     [Fact]
     public void ParseReferenceWithName()
     {
-        var dbml = @"
-Table users {
-  id integer [pk]
-}
-
-Table posts {
-  id integer [pk]
-  user_id integer
-}
-
-Ref user_posts: posts.user_id > users.id";
+        var dbml = "Table users {\n  id integer [pk]\n}\n\nTable posts {\n  id integer [pk]\n  user_id integer\n}\n\nRef user_posts: posts.user_id > users.id";
 
         var model = _parser.Parse(dbml);
 
@@ -111,5 +101,15 @@ Ref: ""blog posts"".user_id > ""user accounts"".id";
         Assert.Equal("user_id", reference.FromColumn);
         Assert.Equal("user accounts", reference.ToTable);
         Assert.Equal("id", reference.ToColumn);
+    }
+
+    [Fact]
+    public void ParseSimpleNamedReference()
+    {
+        var dbml = "Ref user_posts: posts.user_id > users.id";
+        var model = new DbmlParser().Parse(dbml);
+        Assert.Single(model.References);
+        var reference = model.References[0];
+        Assert.Equal("user_posts", reference.Name);
     }
 } 

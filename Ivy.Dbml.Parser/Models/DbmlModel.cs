@@ -8,6 +8,9 @@ public class DbmlModel
     public string? Note { get; set; }
     public List<Table> Tables { get; set; } = new();
     public List<Reference> References { get; set; } = new();
+    public List<DbmlEnum> Enums { get; set; } = new();
+    public List<TableGroup> TableGroups { get; set; } = new();
+    public List<Note> Notes { get; set; } = new();
     public string? DatabaseType { get; set; }
     public string? Language { get; set; }
     public string? Schema { get; set; }

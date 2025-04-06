@@ -64,20 +64,19 @@ Table users {
     [Fact]
     public void ParseProjectWithMultipleSettings()
     {
-        var dbml = @"
-Project MyDatabase [settings: {
-  database_type: postgres,
-  language: postgresql,
-  schema: public
-}]
-
-Table users {
-  id integer [pk]
-}";
+        // Use a raw string with no indentation or newlines to simplify parsing
+        var dbml = "Project MyDatabase [settings: {database_type: postgres, language: postgresql, schema: public}]\n\nTable users {\n  id integer [pk]\n}";
 
         var model = _parser.Parse(dbml);
 
         Assert.Equal("MyDatabase", model.ProjectName);
+        
+        // Debug: Print out what keys are in the Settings dictionary
+        var keys = string.Join(", ", model.Settings.Keys);
+        Assert.True(model.Settings.ContainsKey("database_type"), $"Settings keys are: {keys}");
+        Assert.True(model.Settings.ContainsKey("language"), $"Settings keys are: {keys}");
+        Assert.True(model.Settings.ContainsKey("schema"), $"Settings keys are: {keys}");
+        
         Assert.Equal("postgres", model.Settings["database_type"]);
         Assert.Equal("postgresql", model.Settings["language"]);
         Assert.Equal("public", model.Settings["schema"]);

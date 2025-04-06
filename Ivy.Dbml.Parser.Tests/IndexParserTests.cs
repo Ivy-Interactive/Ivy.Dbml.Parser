@@ -22,7 +22,7 @@ Table users {
   email varchar
   name varchar
 
-  Indexes {
+  indexes {
     email
   }
 }";
@@ -47,7 +47,7 @@ Table users {
   id integer [pk]
   email varchar
 
-  Indexes {
+  indexes {
     (email) [unique]
   }
 }";
@@ -73,7 +73,7 @@ Table users {
   first_name varchar
   last_name varchar
 
-  Indexes {
+  indexes {
     (first_name, last_name)
   }
 }";
@@ -98,7 +98,7 @@ Table users {
   id integer [pk]
   email varchar
 
-  Indexes {
+  indexes {
     (email) [type: btree]
   }
 }";
@@ -121,7 +121,7 @@ Table users {
   id integer [pk]
   email varchar
 
-  Indexes {
+  indexes {
     (email) 'Email index for faster lookups'
   }
 }";

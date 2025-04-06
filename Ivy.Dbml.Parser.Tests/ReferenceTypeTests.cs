@@ -34,7 +34,8 @@ Table profiles {
         var profilesTable = model.Tables[1];
 
         Assert.NotNull(usersTable.Columns[1].Reference);
-        Assert.Equal(ReferenceType.OneToOne, usersTable.Columns[1].Reference.Type);
+        var userRefType = usersTable.Columns[1].Reference!.Type;
+        Assert.Equal(ReferenceType.OneToOne, userRefType);
     }
 
     [Fact]
