@@ -57,7 +57,7 @@ Table posts {
         var postsTable = model.Tables[1];
 
         Assert.NotNull(postsTable.Columns[1].Reference);
-        Assert.Equal(ReferenceType.ManyToOne, postsTable.Columns[1].Reference.Type);
+        Assert.Equal(ReferenceType.ManyToOne, postsTable.Columns[1].Reference!.Type);
     }
 
     [Fact]
@@ -84,7 +84,7 @@ Table user_groups {
 
         Assert.NotNull(userGroupsTable.Columns[0].Reference);
         Assert.NotNull(userGroupsTable.Columns[1].Reference);
-        Assert.Equal(ReferenceType.ManyToMany, userGroupsTable.Columns[0].Reference.Type);
-        Assert.Equal(ReferenceType.ManyToMany, userGroupsTable.Columns[1].Reference.Type);
+        Assert.Equal(ReferenceType.ManyToMany, userGroupsTable.Columns[0].Reference!.Type);
+        Assert.Equal(ReferenceType.ManyToMany, userGroupsTable.Columns[1].Reference!.Type);
     }
 } 

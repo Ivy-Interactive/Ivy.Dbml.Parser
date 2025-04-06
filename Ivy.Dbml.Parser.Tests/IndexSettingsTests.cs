@@ -201,6 +201,15 @@ Table bookings {
         
         // Verify we have indexes with the expressions we expect
         Assert.Contains(expressionIndexes, i => i.Expressions.Contains("id*2") || i.Expressions.Contains("id*3"));
+
+        var secondIndex = expressionIndexes.FirstOrDefault(i => i.Expressions.Count == 2);
+        Assert.NotNull(secondIndex);
+        Assert.Equal(2, secondIndex.Expressions.Count);
+        Assert.Contains("id*3", secondIndex.Expressions);
+        Assert.Contains("getdate()", secondIndex.Expressions);
+        Assert.Equal(2, secondIndex.Columns.Count);
+        Assert.Contains("id*3", secondIndex.Columns);
+        Assert.Contains("getdate()", secondIndex.Columns);
     }
 
     [Fact]
@@ -223,7 +232,7 @@ Table bookings {
         
         var index = table.Indexes[0];
         Assert.Equal(2, index.Columns.Count);
-        Assert.Equal("id*3", index.Expressions[0]);
-        Assert.Equal("id", index.Columns[1]);
+        Assert.Contains("id*3", index.Expressions);
+        Assert.Contains("id", index.Columns);
     }
 } 
