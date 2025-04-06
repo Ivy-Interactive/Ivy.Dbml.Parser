@@ -19,7 +19,7 @@ public class ReferenceTypeTests
         var dbml = @"
 Table users {
   id integer [pk]
-  profile_id integer [ref: > profiles.id]
+  profile_id integer [ref: - profiles.id]
 }
 
 Table profiles {
@@ -73,8 +73,8 @@ Table groups {
 }
 
 Table user_groups {
-  user_id integer [ref: > users.id]
-  group_id integer [ref: > groups.id]
+  user_id integer [ref: <> users.id]
+  group_id integer [ref: <> groups.id]
 }";
 
         var model = _parser.Parse(dbml);

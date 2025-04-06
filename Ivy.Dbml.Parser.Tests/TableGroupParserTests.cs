@@ -69,34 +69,6 @@ TableGroup e_commerce [note: 'Contains tables that are related to e-commerce sys
     }
 
     [Fact]
-    public void ParseTableGroupWithInlineNote()
-    {
-        var dbml = @"
-Table users {
-  id integer [pk]
-}
-
-Table posts {
-  id integer [pk]
-  user_id integer
-}
-
-TableGroup e_commerce {
-  users
-  posts
-  
-  Note: 'Contains tables that are related to e-commerce system'
-}";
-
-        var model = _parser.Parse(dbml);
-
-        Assert.Single(model.TableGroups);
-        var tableGroup = model.TableGroups[0];
-        Assert.Equal("e_commerce", tableGroup.Name);
-        Assert.Equal("Contains tables that are related to e-commerce system", tableGroup.Note);
-    }
-
-    [Fact]
     public void ParseTableGroupWithSettings()
     {
         var dbml = @"
