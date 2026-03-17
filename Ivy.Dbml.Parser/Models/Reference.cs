@@ -14,6 +14,8 @@ public class Reference
     public string ToColumn { get; set; } = string.Empty;
     public List<string> ToColumns { get; set; } = new();
     public string? Note { get; set; }
+    public string? OnDelete { get; set; }
+    public string? OnUpdate { get; set; }
     public ReferenceType Type { get; set; }
     public bool IsCompositeKey { get; set; }
     public Dictionary<string, string> Settings { get; set; } = new();
@@ -25,4 +27,4 @@ public enum ReferenceType
     OneToMany,
     ManyToOne,
     ManyToMany
-} 
+}

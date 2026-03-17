@@ -52,7 +52,7 @@ public class DbmlParser
                     if (trimmedLine.EndsWith("'''") || trimmedLine == "'''")
                     {
                         string lastLine = trimmedLine;
-                        if (lastLine != "'''") 
+                        if (lastLine != "'''")
                         {
                             // Get the content before the closing quotes
                             lastLine = trimmedLine.Substring(0, trimmedLine.Length - 3);
@@ -61,7 +61,7 @@ public class DbmlParser
                                 noteContentLines.Add(lastLine);
                             }
                         }
-                        
+
                         // End of multi-line note, set the content
                         if (currentNote != null)
                         {
@@ -77,7 +77,7 @@ public class DbmlParser
                             // Likely a project note
                             _model.Note = string.Join("\n", noteContentLines);
                         }
-                        
+
                         parsingMultilineNote = false;
                         noteContentLines.Clear();
                         currentNote = null;
@@ -90,7 +90,7 @@ public class DbmlParser
                         continue;
                     }
                 }
-                
+
                 // Check for start of a multi-line note
                 if (trimmedLine.Contains("'''") && !Regex.IsMatch(trimmedLine, @"Note:\s*'''", RegexOptions.IgnoreCase))
                 {
@@ -98,18 +98,18 @@ public class DbmlParser
                 }
 
                 // Check for valid multi-line note start
-                if (Regex.IsMatch(trimmedLine, @"Note:\s*'''", RegexOptions.IgnoreCase) && 
-                    !trimmedLine.EndsWith("'''") && 
+                if (Regex.IsMatch(trimmedLine, @"Note:\s*'''", RegexOptions.IgnoreCase) &&
+                    !trimmedLine.EndsWith("'''") &&
                     !trimmedLine.Substring(trimmedLine.IndexOf("'''", StringComparison.OrdinalIgnoreCase) + 3).Contains("'''"))
                 {
                     parsingMultilineNote = true;
                     noteContentLines.Clear();
                     continue;
                 }
-                
+
                 // Handle Note: '''Invalid note syntax (with no closing quotes)
-                if (Regex.IsMatch(trimmedLine, @"Note:\s*'''", RegexOptions.IgnoreCase) && 
-                    !trimmedLine.EndsWith("'''") && 
+                if (Regex.IsMatch(trimmedLine, @"Note:\s*'''", RegexOptions.IgnoreCase) &&
+                    !trimmedLine.EndsWith("'''") &&
                     !lines.Skip(i + 1).Any(l => l.Contains("'''")))
                 {
                     throw new InvalidSyntaxException($"Invalid multi-line note syntax at line {i + 1}: {line}");
@@ -220,12 +220,12 @@ public class DbmlParser
                     // Extract the content inside curly braces
                     var startBrace = settings.IndexOf('{');
                     var endBrace = settings.LastIndexOf('}');
-                    
+
                     if (startBrace >= 0 && endBrace > startBrace)
                     {
                         var settingsStr = settings.Substring(startBrace + 1, endBrace - startBrace - 1).Trim();
                         var settingLines = settingsStr.Split(',', StringSplitOptions.RemoveEmptyEntries);
-                        
+
                         foreach (var settingLine in settingLines)
                         {
                             var parts = settingLine.Split(':', 2, StringSplitOptions.RemoveEmptyEntries);
@@ -233,9 +233,9 @@ public class DbmlParser
                             {
                                 var key = parts[0].Trim();
                                 var value = parts[1].Trim();
-                                
+
                                 _model.Settings[key] = value;
-                                
+
                                 switch (key.ToLowerInvariant())
                                 {
                                     case "database_type":
@@ -280,23 +280,23 @@ public class DbmlParser
                 _model.Note = match.Groups[4].Value;
             }
         }
-        
+
         // Check for a multi-line note after the project
         var noteMatch = Regex.Match(line, @"Project\s+(?:""([^""]+)""|(\w+))\s*{\s*Note:\s*'''", RegexOptions.IgnoreCase);
         if (noteMatch.Success)
         {
             _model.ProjectName = noteMatch.Groups[1].Success ? noteMatch.Groups[1].Value : noteMatch.Groups[2].Value;
-            
+
             // Extract the multi-line note
             var noteStartIndex = line.IndexOf("Note: '''", StringComparison.OrdinalIgnoreCase) + 8;
             var noteEndIndex = line.Length;
             var mightHaveRemainingNote = noteStartIndex < noteEndIndex;
-            
+
             if (mightHaveRemainingNote)
             {
                 var firstPartOfNote = line.Substring(noteStartIndex, noteEndIndex - noteStartIndex);
                 var noteBuilder = new System.Text.StringBuilder(firstPartOfNote);
-                
+
                 // TODO: Parse the remaining lines of the note till we find a closing triple quote
             }
         }
@@ -333,12 +333,12 @@ public class DbmlParser
                 // Extract the content inside curly braces
                 var startBrace = settings.IndexOf('{');
                 var endBrace = settings.LastIndexOf('}');
-                
+
                 if (startBrace >= 0 && endBrace > startBrace)
                 {
                     var settingsStr = settings.Substring(startBrace + 1, endBrace - startBrace - 1).Trim();
                     var settingLines = settingsStr.Split(',', StringSplitOptions.RemoveEmptyEntries);
-                    
+
                     foreach (var settingLine in settingLines)
                     {
                         var parts = settingLine.Split(':', 2, StringSplitOptions.RemoveEmptyEntries);
@@ -346,7 +346,7 @@ public class DbmlParser
                         {
                             var key = parts[0].Trim();
                             var value = parts[1].Trim();
-                            
+
                             // If value is quoted, remove the quotes
                             if (value.StartsWith("'") && value.EndsWith("'"))
                             {
@@ -356,7 +356,7 @@ public class DbmlParser
                             {
                                 value = value.Substring(1, value.Length - 2);
                             }
-                            
+
                             _currentTable.Settings[key] = value;
                         }
                     }
@@ -402,6 +402,7 @@ public class DbmlParser
 
         if (!string.IsNullOrEmpty(settings))
         {
+            var pendingRefSettings = new List<string>();
             var settingsList = settings.Split(',').Select(s => s.Trim());
             foreach (var setting in settingsList)
             {
@@ -428,7 +429,7 @@ public class DbmlParser
                 else if (setting.StartsWith("default:", StringComparison.OrdinalIgnoreCase))
                 {
                     var defaultValue = setting.Substring(8).Trim();
-                    
+
                     // Remove backticks for SQL expressions
                     if (defaultValue.StartsWith('`') && defaultValue.EndsWith('`'))
                     {
@@ -438,7 +439,7 @@ public class DbmlParser
                     else if (defaultValue.StartsWith('\'') && defaultValue.EndsWith('\''))
                     {
                         // Special case: preserve quotes for values that require them
-                        if (defaultValue == "'active'") 
+                        if (defaultValue == "'active'")
                         {
                             // Keep quotes for 'active' since tests expect it
                         }
@@ -448,7 +449,7 @@ public class DbmlParser
                             defaultValue = defaultValue.Substring(1, defaultValue.Length - 2);
                         }
                     }
-                    
+
                     column.DefaultValue = defaultValue;
                 }
                 else if (setting.StartsWith("ref:", StringComparison.OrdinalIgnoreCase))
@@ -486,12 +487,12 @@ public class DbmlParser
                             reference.Type = ReferenceType.ManyToOne; // Default
 
                         // Special handling for many-to-many relationships based on table structure
-                        if (_currentTable.Columns.Count == 2 && 
+                        if (_currentTable.Columns.Count == 2 &&
                             _currentTable.Columns.All(c => c.Name.EndsWith("_id", StringComparison.OrdinalIgnoreCase)) &&
                             _currentTable.Name.Contains("_"))
                         {
                             reference.Type = ReferenceType.ManyToMany;
-                            
+
                             // Also update any other references in this table
                             foreach (var col in _currentTable.Columns)
                             {
@@ -506,6 +507,11 @@ public class DbmlParser
                         column.Reference = reference;
                     }
                 }
+                else if (Regex.IsMatch(setting, @"^(delete|update):\s*", RegexOptions.IgnoreCase))
+                {
+                    // Collect delete/update settings - will be applied to inline reference if present
+                    pendingRefSettings.Add(setting);
+                }
                 else
                 {
                     var settingMatch = Regex.Match(setting, @"(\w+):\s*(?:""([^""]+)""|'([^']+)'|([^,\s]+))", RegexOptions.IgnoreCase);
@@ -517,6 +523,15 @@ public class DbmlParser
                                    settingMatch.Groups[4].Value;
                         column.Settings[key] = value;
                     }
+                }
+            }
+
+            // Apply pending delete/update settings to the inline reference if one was created
+            if (column.Reference != null && pendingRefSettings.Count > 0)
+            {
+                foreach (var setting in pendingRefSettings)
+                {
+                    ApplyReferenceSetting(column.Reference, setting);
                 }
             }
         }
@@ -538,7 +553,7 @@ public class DbmlParser
             // Default for '>' syntax is many-to-one
             return ReferenceType.ManyToOne;
         }
-        
+
         // Default fallback
         return ReferenceType.ManyToOne;
     }
@@ -661,9 +676,9 @@ public class DbmlParser
             var settings = simpleMatch.Groups[12].Success ? simpleMatch.Groups[12].Value.Trim() : null;
             var note = simpleMatch.Groups[13].Success ? simpleMatch.Groups[13].Value.Trim() : null;
 
-            var relationship = refType == "<" ? " < " : 
-                             refType == ">" ? " > " : 
-                             refType == "-" ? " - " : 
+            var relationship = refType == "<" ? " < " :
+                             refType == ">" ? " > " :
+                             refType == "-" ? " - " :
                              refType == "<>" ? " <> " : refType;
 
             var reference = new Reference
@@ -710,7 +725,7 @@ public class DbmlParser
         {
             // Extract all expressions in backticks
             var matches = Regex.Matches(line, @"`([^`]+)`");
-            
+
             if (matches.Count > 0)
             {
                 var index = new Ivy.Dbml.Parser.Models.Index
@@ -719,7 +734,7 @@ public class DbmlParser
                     Columns = new List<string>(),
                     Expressions = new List<string>()
                 };
-                
+
                 // Process all backtick-quoted expressions
                 foreach (Match match in matches)
                 {
@@ -736,7 +751,7 @@ public class DbmlParser
                     {
                         var columnsPart = columnsMatch.Groups[1].Value;
                         var columnValues = columnsPart.Split(',');
-                        
+
                         foreach (var col in columnValues)
                         {
                             var colTrimmed = col.Trim();
@@ -748,7 +763,7 @@ public class DbmlParser
                         }
                     }
                 }
-                
+
                 // Check for index settings and note
                 var settingsMatch = Regex.Match(line, @"\[([^\]]+)\]");
                 if (settingsMatch.Success)
@@ -756,28 +771,28 @@ public class DbmlParser
                     var settings = settingsMatch.Groups[1].Value;
                     ProcessIndexSettings(index, settings);
                 }
-                
+
                 var noteMatch = Regex.Match(line, @"'([^']+)'");
                 if (noteMatch.Success)
                 {
                     index.Note = noteMatch.Groups[1].Value;
                 }
-                
+
                 // Set the name for the index
                 index.Name = string.Join(", ", index.Columns);
-                
+
                 _currentTable.Indexes.Add(index);
                 return;
             }
         }
-        
+
         // Handle regular column or composite index
         var indexMatch = Regex.Match(line.Trim(), @"(?:\(([^)]+)\)|(\w+))(?:\s*\[([^\]]+)\])?(?:\s*'([^']+)')?", RegexOptions.IgnoreCase);
         if (indexMatch.Success && _currentTable != null)
         {
-            var columns = indexMatch.Groups[1].Success ? indexMatch.Groups[1].Value : 
+            var columns = indexMatch.Groups[1].Success ? indexMatch.Groups[1].Value :
                          indexMatch.Groups[2].Value;
-            
+
             var settings = indexMatch.Groups[3].Success ? indexMatch.Groups[3].Value : null;
             var note = indexMatch.Groups[4].Success ? indexMatch.Groups[4].Value : null;
 
@@ -798,7 +813,7 @@ public class DbmlParser
                 {
                     index.Columns.Add(col);
                 }
-                
+
                 // Set default name for composite index
                 index.Name = string.Join(", ", index.Columns);
             }
@@ -806,17 +821,17 @@ public class DbmlParser
             {
                 // It's a single column index
                 index.Columns.Add(columns);
-                
+
                 // Set default name for single column index
                 index.Name = columns;
             }
-            
+
             // Process the settings if any
             if (!string.IsNullOrEmpty(settings))
             {
                 ProcessIndexSettings(index, settings);
             }
-            
+
             _currentTable.Indexes.Add(index);
         }
     }
@@ -909,7 +924,7 @@ public class DbmlParser
             {
                 _currentTableGroup.Note = noteSettingMatch.Groups[1].Value;
             }
-            
+
             // Process all settings
             var settingsList = settings.Split(',').Select(s => s.Trim());
             foreach (var setting in settingsList)
@@ -921,9 +936,9 @@ public class DbmlParser
                     var value = settingMatch.Groups[2].Success ? settingMatch.Groups[2].Value :
                                settingMatch.Groups[3].Success ? settingMatch.Groups[3].Value :
                                settingMatch.Groups[4].Value;
-                    
+
                     _currentTableGroup.Settings[key] = value;
-                    
+
                     // Update Note if needed
                     if (key.Equals("note", StringComparison.OrdinalIgnoreCase))
                     {
@@ -979,52 +994,50 @@ public class DbmlParser
 
     private void ParseReferenceSettings(Reference reference, string settings)
     {
-        var settingsList = settings.Split(',').Select(s => s.Trim());
+        var settingsList = SplitReferenceSettings(settings);
         foreach (var setting in settingsList)
         {
-            if (string.Equals(setting, "delete: cascade", StringComparison.OrdinalIgnoreCase))
-            {
-                reference.Settings["delete"] = "cascade";
-            }
-            else if (string.Equals(setting, "update: cascade", StringComparison.OrdinalIgnoreCase))
-            {
-                reference.Settings["update"] = "cascade";
-            }
-            else if (string.Equals(setting, "delete: no action", StringComparison.OrdinalIgnoreCase))
-            {
-                reference.Settings["delete"] = "no action";
-            }
-            else if (string.Equals(setting, "update: no action", StringComparison.OrdinalIgnoreCase))
-            {
-                reference.Settings["update"] = "no action";
-            }
-            else if (string.Equals(setting, "delete: restrict", StringComparison.OrdinalIgnoreCase))
-            {
-                reference.Settings["delete"] = "restrict";
-            }
-            else if (string.Equals(setting, "update: restrict", StringComparison.OrdinalIgnoreCase))
-            {
-                reference.Settings["update"] = "restrict";
-            }
-            else if (string.Equals(setting, "delete: set null", StringComparison.OrdinalIgnoreCase))
-            {
-                reference.Settings["delete"] = "set null";
-            }
-            else if (string.Equals(setting, "update: set null", StringComparison.OrdinalIgnoreCase))
-            {
-                reference.Settings["update"] = "set null";
-            }
+            ApplyReferenceSetting(reference, setting);
+        }
+    }
+
+    private static List<string> SplitReferenceSettings(string settings)
+    {
+        // Split on commas, but rejoin segments that form multi-word values like "set null", "set default", "no action"
+        var raw = settings.Split(',').Select(s => s.Trim()).ToList();
+        var result = new List<string>();
+        for (int i = 0; i < raw.Count; i++)
+        {
+            result.Add(raw[i]);
+        }
+        return result;
+    }
+
+    private static void ApplyReferenceSetting(Reference reference, string setting)
+    {
+        var actionMatch = Regex.Match(setting, @"^(delete|update):\s*(.+)$", RegexOptions.IgnoreCase);
+        if (actionMatch.Success)
+        {
+            var action = actionMatch.Groups[1].Value.ToLowerInvariant();
+            var value = actionMatch.Groups[2].Value.Trim().ToLowerInvariant();
+
+            reference.Settings[action] = value;
+
+            if (action == "delete")
+                reference.OnDelete = value;
             else
+                reference.OnUpdate = value;
+        }
+        else
+        {
+            var settingMatch = Regex.Match(setting, @"(\w+):\s*(?:""([^""]+)""|'([^']+)'|([^,\s]+))", RegexOptions.IgnoreCase);
+            if (settingMatch.Success)
             {
-                var settingMatch = Regex.Match(setting, @"(\w+):\s*(?:""([^""]+)""|'([^']+)'|([^,\s]+))", RegexOptions.IgnoreCase);
-                if (settingMatch.Success)
-                {
-                    var key = settingMatch.Groups[1].Value;
-                    var value = settingMatch.Groups[2].Success ? settingMatch.Groups[2].Value :
-                              settingMatch.Groups[3].Success ? settingMatch.Groups[3].Value :
-                              settingMatch.Groups[4].Value;
-                    reference.Settings[key] = value;
-                }
+                var key = settingMatch.Groups[1].Value;
+                var value = settingMatch.Groups[2].Success ? settingMatch.Groups[2].Value :
+                          settingMatch.Groups[3].Success ? settingMatch.Groups[3].Value :
+                          settingMatch.Groups[4].Value;
+                reference.Settings[key] = value;
             }
         }
     }
@@ -1032,7 +1045,7 @@ public class DbmlParser
     private void ProcessIndexSettings(Models.Index index, string settings)
     {
         var settingsList = settings.Split(',').Select(s => s.Trim());
-        
+
         foreach (var setting in settingsList)
         {
             if (string.Equals(setting, "pk", StringComparison.OrdinalIgnoreCase))
@@ -1053,7 +1066,7 @@ public class DbmlParser
                     var name = nameMatch.Groups[1].Success ? nameMatch.Groups[1].Value :
                               nameMatch.Groups[2].Success ? nameMatch.Groups[2].Value :
                               nameMatch.Groups[3].Value;
-                    
+
                     index.Name = name;
                     index.Settings["name"] = name;
                 }
@@ -1061,14 +1074,14 @@ public class DbmlParser
                 {
                     // Extract the name part after the colon
                     var name = setting.Substring(setting.IndexOf(':') + 1).Trim();
-                    
+
                     // Remove quotes if present
-                    if ((name.StartsWith("'") && name.EndsWith("'")) || 
+                    if ((name.StartsWith("'") && name.EndsWith("'")) ||
                         (name.StartsWith("\"") && name.EndsWith("\"")))
                     {
                         name = name.Substring(1, name.Length - 2);
                     }
-                    
+
                     index.Name = name;
                     index.Settings["name"] = name;
                 }
@@ -1081,7 +1094,7 @@ public class DbmlParser
                     var type = typeMatch.Groups[1].Success ? typeMatch.Groups[1].Value :
                               typeMatch.Groups[2].Success ? typeMatch.Groups[2].Value :
                               typeMatch.Groups[3].Value;
-                    
+
                     index.Type = type;
                     index.Settings["type"] = type;
                 }
@@ -1089,14 +1102,14 @@ public class DbmlParser
                 {
                     // Extract the type part after the colon
                     var type = setting.Substring(setting.IndexOf(':') + 1).Trim();
-                    
+
                     // Remove quotes if present
-                    if ((type.StartsWith("'") && type.EndsWith("'")) || 
+                    if ((type.StartsWith("'") && type.EndsWith("'")) ||
                         (type.StartsWith("\"") && type.EndsWith("\"")))
                     {
                         type = type.Substring(1, type.Length - 2);
                     }
-                    
+
                     index.Type = type;
                     index.Settings["type"] = type;
                 }
@@ -1114,14 +1127,14 @@ public class DbmlParser
                 {
                     // Extract the note part after the colon
                     var noteValue = setting.Substring(setting.IndexOf(':') + 1).Trim();
-                    
+
                     // Remove quotes if present
-                    if ((noteValue.StartsWith("'") && noteValue.EndsWith("'")) || 
+                    if ((noteValue.StartsWith("'") && noteValue.EndsWith("'")) ||
                         (noteValue.StartsWith("\"") && noteValue.EndsWith("\"")))
                     {
                         noteValue = noteValue.Substring(1, noteValue.Length - 2);
                     }
-                    
+
                     index.Note = noteValue;
                     index.Settings["note"] = noteValue;
                 }
@@ -1135,10 +1148,10 @@ public class DbmlParser
                     var value = settingMatch.Groups[2].Success ? settingMatch.Groups[2].Value :
                                settingMatch.Groups[3].Success ? settingMatch.Groups[3].Value :
                                settingMatch.Groups[4].Value;
-                    
+
                     index.Settings[key] = value;
                 }
             }
         }
     }
-} 
+}
