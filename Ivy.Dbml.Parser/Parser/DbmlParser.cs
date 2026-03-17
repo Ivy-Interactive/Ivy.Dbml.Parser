@@ -610,23 +610,24 @@ public class DbmlParser
             return;
         }
 
-        // Try to match composite key reference format: Ref: posts.(user_id, post_id) > users.(id, type)
-        var compositeMatch = Regex.Match(line, @"Ref:\s*(?:([^\.]+)\.)?(?:""([^""]+)""|(\w+))\.\(([^)]+)\)\s*([<>-](?:\s*[<>])?)\s*(?:([^\.]+)\.)?(?:""([^""]+)""|(\w+))\.\(([^)]+)\)(?:\s*\[([^\]]+)\])?(?:\s*'([^']+)')?", RegexOptions.IgnoreCase);
+        // Try to match composite key reference format: Ref [name]: table.(col1, col2) > table.(col1, col2)
+        var compositeMatch = Regex.Match(line, @"Ref(?:\s+(\w+))?:\s*(?:([^\.]+)\.)?(?:""([^""]+)""|(\w+))\.\(([^)]+)\)\s*([<>-](?:\s*[<>])?)\s*(?:([^\.]+)\.)?(?:""([^""]+)""|(\w+))\.\(([^)]+)\)(?:\s*\[([^\]]+)\])?(?:\s*'([^']+)')?", RegexOptions.IgnoreCase);
         if (compositeMatch.Success)
         {
-            var fromSchema = compositeMatch.Groups[1].Success ? compositeMatch.Groups[1].Value.Trim() : "public";
-            var fromTable = (compositeMatch.Groups[2].Success ? compositeMatch.Groups[2].Value : compositeMatch.Groups[3].Value).Trim();
-            var fromColumns = compositeMatch.Groups[4].Value.Split(',').Select(c => c.Trim()).ToList();
-            var refType = compositeMatch.Groups[5].Value.Trim();
-            var toSchema = compositeMatch.Groups[6].Success ? compositeMatch.Groups[6].Value.Trim() : "public";
-            var toTable = (compositeMatch.Groups[7].Success ? compositeMatch.Groups[7].Value : compositeMatch.Groups[8].Value).Trim();
-            var toColumns = compositeMatch.Groups[9].Value.Split(',').Select(c => c.Trim()).ToList();
-            var settings = compositeMatch.Groups[10].Success ? compositeMatch.Groups[10].Value.Trim() : null;
-            var note = compositeMatch.Groups[11].Success ? compositeMatch.Groups[11].Value.Trim() : null;
+            var refName = compositeMatch.Groups[1].Success ? compositeMatch.Groups[1].Value.Trim() : null;
+            var fromSchema = compositeMatch.Groups[2].Success ? compositeMatch.Groups[2].Value.Trim() : "public";
+            var fromTable = (compositeMatch.Groups[3].Success ? compositeMatch.Groups[3].Value : compositeMatch.Groups[4].Value).Trim();
+            var fromColumns = compositeMatch.Groups[5].Value.Split(',').Select(c => c.Trim()).ToList();
+            var refType = compositeMatch.Groups[6].Value.Trim();
+            var toSchema = compositeMatch.Groups[7].Success ? compositeMatch.Groups[7].Value.Trim() : "public";
+            var toTable = (compositeMatch.Groups[8].Success ? compositeMatch.Groups[8].Value : compositeMatch.Groups[9].Value).Trim();
+            var toColumns = compositeMatch.Groups[10].Value.Split(',').Select(c => c.Trim()).ToList();
+            var settings = compositeMatch.Groups[11].Success ? compositeMatch.Groups[11].Value.Trim() : null;
+            var note = compositeMatch.Groups[12].Success ? compositeMatch.Groups[12].Value.Trim() : null;
 
             var reference = new Reference
             {
-                Name = $"{fromTable}.({string.Join(", ", fromColumns)}) {refType} {toTable}.({string.Join(", ", toColumns)})",
+                Name = refName ?? $"{fromTable}.({string.Join(", ", fromColumns)}) {refType} {toTable}.({string.Join(", ", toColumns)})",
                 FromSchema = fromSchema,
                 FromTable = fromTable,
                 FromColumn = fromColumns.First(), // Store the first column in the single column field for backward compatibility

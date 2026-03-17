@@ -93,18 +93,79 @@ Ref: merchant_periods.(merchant_id, country_code) > merchants.(id, country_code)
 
         Assert.Single(model.References);
         var reference = model.References[0];
-        
+
         Assert.Equal("merchant_periods", reference.FromTable);
         Assert.Equal("merchants", reference.ToTable);
-        
+
         Assert.True(reference.IsCompositeKey);
         Assert.Equal(2, reference.FromColumns.Count);
         Assert.Equal("merchant_id", reference.FromColumns[0]);
         Assert.Equal("country_code", reference.FromColumns[1]);
-        
+
         Assert.Equal(2, reference.ToColumns.Count);
         Assert.Equal("id", reference.ToColumns[0]);
         Assert.Equal("country_code", reference.ToColumns[1]);
+    }
+
+    [Fact]
+    public void ParseCompositeKeyWithSchema()
+    {
+        var dbml = @"
+Table s1.a {
+  c1 int
+  c2 int
+}
+
+Table s2.b {
+  c1 int
+  c2 int
+}
+
+Ref: s1.a.(c1, c2) > s2.b.(c1, c2)";
+
+        var model = _parser.Parse(dbml);
+
+        Assert.Single(model.References);
+        var reference = model.References[0];
+
+        Assert.True(reference.IsCompositeKey);
+        Assert.Equal("s1", reference.FromSchema);
+        Assert.Equal("a", reference.FromTable);
+        Assert.Equal(new[] { "c1", "c2" }, reference.FromColumns);
+        Assert.Equal("s2", reference.ToSchema);
+        Assert.Equal("b", reference.ToTable);
+        Assert.Equal(new[] { "c1", "c2" }, reference.ToColumns);
+    }
+
+    [Fact]
+    public void ParseNamedCompositeKeyReference()
+    {
+        var dbml = @"
+Table merchants {
+  id integer [pk]
+  country_code char(2)
+}
+
+Table merchant_periods {
+  id integer [pk]
+  merchant_id integer
+  country_code char(2)
+}
+
+Ref merchant_fk: merchant_periods.(merchant_id, country_code) > merchants.(id, country_code)";
+
+        var model = _parser.Parse(dbml);
+
+        Assert.Single(model.References);
+        var reference = model.References[0];
+
+        Assert.Equal("merchant_fk", reference.Name);
+        Assert.True(reference.IsCompositeKey);
+        Assert.Equal("merchant_periods", reference.FromTable);
+        Assert.Equal(new[] { "merchant_id", "country_code" }, reference.FromColumns);
+        Assert.Equal("merchants", reference.ToTable);
+        Assert.Equal(new[] { "id", "country_code" }, reference.ToColumns);
+        Assert.Equal(ReferenceType.ManyToOne, reference.Type);
     }
 
     [Fact]
@@ -126,12 +187,12 @@ Ref: products.merchant_id > merchants.id [delete: cascade, update: no action]";
 
         Assert.Single(model.References);
         var reference = model.References[0];
-        
+
         Assert.Equal("products", reference.FromTable);
         Assert.Equal("merchant_id", reference.FromColumn);
         Assert.Equal("merchants", reference.ToTable);
         Assert.Equal("id", reference.ToColumn);
-        
+
         Assert.Equal("cascade", reference.Settings["delete"]);
         Assert.Equal("no action", reference.Settings["update"]);
     }
@@ -153,11 +214,11 @@ Table posts {
 
         Assert.Single(model.References);
         var reference = model.References[0];
-        
+
         Assert.Equal("posts", reference.FromTable);
         Assert.Equal("user_id", reference.FromColumn);
         Assert.Equal("users", reference.ToTable);
         Assert.Equal("id", reference.ToColumn);
         Assert.Equal(ReferenceType.ManyToOne, reference.Type);
     }
-} 
+}
