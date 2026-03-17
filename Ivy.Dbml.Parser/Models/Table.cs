@@ -10,6 +10,7 @@ public class Table
     public TableType Type { get; set; }
     public List<Column> Columns { get; set; } = new List<Column>();
     public List<Index> Indexes { get; set; } = new List<Index>();
+    public List<CheckConstraint> Checks { get; set; } = new List<CheckConstraint>();
     public string? Schema { get; set; }
     public Dictionary<string, string> Settings { get; set; } = new Dictionary<string, string>();
 }
@@ -18,4 +19,4 @@ public enum TableType
 {
     Normal,
     View
-} 
+}

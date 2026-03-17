@@ -15,6 +15,7 @@ public class DbmlParser
     private bool _parsingEnum;
     private TableGroup? _currentTableGroup;
     private bool _parsingTableGroup;
+    private bool _parsingChecks;
 
     public DbmlModel Parse(string content)
     {
@@ -24,6 +25,7 @@ public class DbmlParser
         _parsingIndexes = false;
         _parsingEnum = false;
         _parsingTableGroup = false;
+        _parsingChecks = false;
         _model = new DbmlModel();
 
         var lines = content.Split('\n').Select(l => l.TrimEnd()).ToList();
@@ -145,11 +147,16 @@ public class DbmlParser
                 {
                     _parsingIndexes = true;
                 }
+                else if (trimmedLine.StartsWith("checks {", StringComparison.OrdinalIgnoreCase) || trimmedLine.StartsWith("checks{", StringComparison.OrdinalIgnoreCase))
+                {
+                    _parsingChecks = true;
+                }
                 else if (trimmedLine == "}")
                 {
                     _parsingIndexes = false;
                     _parsingEnum = false;
                     _parsingTableGroup = false;
+                    _parsingChecks = false;
                 }
                 else if (trimmedLine.StartsWith("Note:", StringComparison.OrdinalIgnoreCase) && _currentTable != null)
                 {
@@ -174,6 +181,10 @@ public class DbmlParser
                             throw new InvalidSyntaxException($"Invalid note syntax at line {i + 1}: {line}");
                         }
                     }
+                }
+                else if (_parsingChecks && _currentTable != null)
+                {
+                    ParseCheckConstraint(trimmedLine);
                 }
                 else if (_parsingIndexes && _currentTable != null)
                 {
@@ -426,6 +437,15 @@ public class DbmlParser
                 {
                     column.IsUnsigned = true;
                 }
+                else if (setting.StartsWith("check:", StringComparison.OrdinalIgnoreCase))
+                {
+                    var checkValue = setting.Substring(6).Trim();
+                    if (checkValue.StartsWith('`') && checkValue.EndsWith('`'))
+                    {
+                        checkValue = checkValue.Substring(1, checkValue.Length - 2);
+                    }
+                    column.Check = checkValue;
+                }
                 else if (setting.StartsWith("default:", StringComparison.OrdinalIgnoreCase))
                 {
                     var defaultValue = setting.Substring(8).Trim();
@@ -537,6 +557,32 @@ public class DbmlParser
         }
 
         _currentTable.Columns.Add(column);
+    }
+
+    private void ParseCheckConstraint(string line)
+    {
+        if (_currentTable == null) return;
+
+        // Match backtick-delimited expression with optional settings: `expr` [name: 'name']
+        var match = Regex.Match(line, @"`([^`]+)`(?:\s*\[([^\]]+)\])?");
+        if (!match.Success) return;
+
+        var check = new CheckConstraint
+        {
+            Expression = match.Groups[1].Value
+        };
+
+        if (match.Groups[2].Success)
+        {
+            var settings = match.Groups[2].Value;
+            var nameMatch = Regex.Match(settings, @"name:\s*'([^']+)'", RegexOptions.IgnoreCase);
+            if (nameMatch.Success)
+            {
+                check.Name = nameMatch.Groups[1].Value;
+            }
+        }
+
+        _currentTable.Checks.Add(check);
     }
 
     private ReferenceType DetermineReferenceType(string refType, Table fromTable, Column column)

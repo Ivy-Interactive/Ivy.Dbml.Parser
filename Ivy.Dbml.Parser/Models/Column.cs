@@ -15,5 +15,6 @@ public class Column
     public int? Length { get; set; }
     public int? Precision { get; set; }
     public int? Scale { get; set; }
+    public string? Check { get; set; }
     public Dictionary<string, string> Settings { get; set; } = new Dictionary<string, string>();
-} 
+}
