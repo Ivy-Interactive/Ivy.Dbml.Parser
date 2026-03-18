@@ -10,4 +10,4 @@ public class DbmlEnum
     public List<string> Values { get; set; } = new();
     public Dictionary<string, string> ValueNotes { get; set; } = new();
     public Dictionary<string, string> Settings { get; set; } = new();
-} 
+}

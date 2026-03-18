@@ -112,4 +112,4 @@ Ref: ""blog posts"".user_id > ""user accounts"".id";
         var reference = model.References[0];
         Assert.Equal("user_posts", reference.Name);
     }
-} 
+}

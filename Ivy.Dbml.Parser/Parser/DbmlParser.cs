@@ -207,9 +207,8 @@ public class DbmlParser
                     throw new MissingElementException($"Unexpected line at {i + 1}: {line}");
                 }
             }
-            catch (DbmlParsingException ex)
+            catch (DbmlParsingException)
             {
-                // Log or handle the exception as needed
                 throw;
             }
         }

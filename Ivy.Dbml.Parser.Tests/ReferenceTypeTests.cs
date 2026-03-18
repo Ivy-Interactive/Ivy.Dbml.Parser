@@ -87,4 +87,4 @@ Table user_groups {
         Assert.Equal(ReferenceType.ManyToMany, userGroupsTable.Columns[0].Reference!.Type);
         Assert.Equal(ReferenceType.ManyToMany, userGroupsTable.Columns[1].Reference!.Type);
     }
-} 
+}

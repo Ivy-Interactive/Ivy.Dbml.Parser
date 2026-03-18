@@ -93,4 +93,4 @@ TableGroup e_commerce [color: #345] {
         Assert.Equal("e_commerce", tableGroup.Name);
         Assert.Equal("#345", tableGroup.Settings["color"]);
     }
-} 
+}

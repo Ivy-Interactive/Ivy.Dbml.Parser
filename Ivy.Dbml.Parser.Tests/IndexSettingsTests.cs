@@ -33,7 +33,7 @@ Table bookings {
         Assert.Single(model.Tables);
         var table = model.Tables[0];
         Assert.Single(table.Indexes);
-        
+
         var index = table.Indexes[0];
         Assert.Single(index.Columns);
         Assert.Equal("created_at", index.Columns[0]);
@@ -58,7 +58,7 @@ Table bookings {
         Assert.Single(model.Tables);
         var table = model.Tables[0];
         Assert.Single(table.Indexes);
-        
+
         var index = table.Indexes[0];
         Assert.Single(index.Columns);
         Assert.Equal("booking_date", index.Columns[0]);
@@ -84,7 +84,7 @@ Table bookings {
         Assert.Single(model.Tables);
         var table = model.Tables[0];
         Assert.Single(table.Indexes);
-        
+
         var index = table.Indexes[0];
         Assert.Equal(2, index.Columns.Count);
         Assert.Equal("country", index.Columns[0]);
@@ -110,7 +110,7 @@ Table bookings {
         Assert.Single(model.Tables);
         var table = model.Tables[0];
         Assert.Single(table.Indexes);
-        
+
         var index = table.Indexes[0];
         Assert.Equal(2, index.Columns.Count);
         Assert.Equal("id", index.Columns[0]);
@@ -136,7 +136,7 @@ Table bookings {
         Assert.Single(model.Tables);
         var table = model.Tables[0];
         Assert.Single(table.Indexes);
-        
+
         var index = table.Indexes[0];
         Assert.Single(index.Columns);
         Assert.Equal("created_at", index.Columns[0]);
@@ -175,7 +175,7 @@ Table bookings {
         Assert.Equal("getdate()", secondIndex.Expressions[1]);
     }
     */
-    
+
     [Fact]
     public void ParseIndexWithExpression()
     {
@@ -194,11 +194,11 @@ Table bookings {
 
         Assert.Single(model.Tables);
         var table = model.Tables[0];
-        
+
         // Find indexes with expressions
         var expressionIndexes = table.Indexes.Where(i => i.Expressions.Count > 0).ToList();
         Assert.True(expressionIndexes.Count > 0, "Should find at least one index with expressions");
-        
+
         // Verify we have indexes with the expressions we expect
         Assert.Contains(expressionIndexes, i => i.Expressions.Contains("id*2") || i.Expressions.Contains("id*3"));
 
@@ -229,10 +229,10 @@ Table bookings {
         Assert.Single(model.Tables);
         var table = model.Tables[0];
         Assert.Single(table.Indexes);
-        
+
         var index = table.Indexes[0];
         Assert.Equal(2, index.Columns.Count);
         Assert.Contains("id*3", index.Expressions);
         Assert.Contains("id", index.Columns);
     }
-} 
+}

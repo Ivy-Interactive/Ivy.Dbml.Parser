@@ -42,4 +42,4 @@ namespace Ivy.Dbml.Parser.Tests
             Assert.Contains("line 3", exception.Message);
         }
     }
-} 
+}

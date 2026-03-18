@@ -104,4 +104,4 @@ Table users {
         Assert.Equal("'active'", statusColumn.DefaultValue);
         Assert.Equal("false", isDeletedColumn.DefaultValue);
     }
-} 
+}

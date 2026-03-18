@@ -28,11 +28,11 @@ Table users {
         Assert.Single(model.Tables);
         var table = model.Tables[0];
         Assert.Equal(3, table.Columns.Count);
-        
+
         var ratingColumn = table.Columns[1];
         Assert.Equal("rating", ratingColumn.Name);
         Assert.Equal("10", ratingColumn.DefaultValue);
-        
+
         var scoreColumn = table.Columns[2];
         Assert.Equal("score", scoreColumn.Name);
         Assert.Equal("123.456", scoreColumn.DefaultValue);
@@ -53,11 +53,11 @@ Table users {
         Assert.Single(model.Tables);
         var table = model.Tables[0];
         Assert.Equal(3, table.Columns.Count);
-        
+
         var sourceColumn = table.Columns[1];
         Assert.Equal("source", sourceColumn.Name);
         Assert.Equal("direct", sourceColumn.DefaultValue);
-        
+
         var statusColumn = table.Columns[2];
         Assert.Equal("status", statusColumn.Name);
         Assert.Equal("active user", statusColumn.DefaultValue);
@@ -78,11 +78,11 @@ Table users {
         Assert.Single(model.Tables);
         var table = model.Tables[0];
         Assert.Equal(3, table.Columns.Count);
-        
+
         var createdAtColumn = table.Columns[1];
         Assert.Equal("created_at", createdAtColumn.Name);
         Assert.Equal("now()", createdAtColumn.DefaultValue);
-        
+
         var modifiedAtColumn = table.Columns[2];
         Assert.Equal("modified_at", modifiedAtColumn.Name);
         Assert.Equal("now() - interval '5 days'", modifiedAtColumn.DefaultValue);
@@ -104,17 +104,17 @@ Table users {
         Assert.Single(model.Tables);
         var table = model.Tables[0];
         Assert.Equal(4, table.Columns.Count);
-        
+
         var isActiveColumn = table.Columns[1];
         Assert.Equal("is_active", isActiveColumn.Name);
         Assert.Equal("true", isActiveColumn.DefaultValue);
-        
+
         var isDeletedColumn = table.Columns[2];
         Assert.Equal("is_deleted", isDeletedColumn.Name);
         Assert.Equal("false", isDeletedColumn.DefaultValue);
-        
+
         var profilePhotoColumn = table.Columns[3];
         Assert.Equal("profile_photo", profilePhotoColumn.Name);
         Assert.Equal("null", profilePhotoColumn.DefaultValue);
     }
-} 
+}

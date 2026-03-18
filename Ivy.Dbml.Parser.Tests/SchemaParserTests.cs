@@ -49,11 +49,11 @@ Table blogging.posts {
         var model = _parser.Parse(dbml);
 
         Assert.Equal(2, model.Tables.Count);
-        
+
         var usersTable = model.Tables[0];
         Assert.Equal("users", usersTable.Name);
         Assert.Equal("core", usersTable.Schema);
-        
+
         var postsTable = model.Tables[1];
         Assert.Equal("posts", postsTable.Name);
         Assert.Equal("blogging", postsTable.Schema);
@@ -105,4 +105,4 @@ Ref: blogging.posts.user_id > core.users.id";
         Assert.Equal("users", reference.ToTable);
         Assert.Equal("id", reference.ToColumn);
     }
-} 
+}

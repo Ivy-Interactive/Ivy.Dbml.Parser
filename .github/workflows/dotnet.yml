@@ -1,5 +1,6 @@
-# This workflow will build and publish a .NET project to NuGet.org
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-net
+# Builds and tests on push/PR to main.
+# Publishes to NuGet.org when a GitHub Release is created.
+# The package version is taken from the release tag (e.g. tag "1.1.0" → version 1.1.0).
 
 name: Build and Publish
 
@@ -8,9 +9,11 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  release:
+    types: [ published ]
 
 jobs:
-  build-and-publish:
+  build-and-test:
     runs-on: ubuntu-latest
 
     steps:
@@ -19,20 +22,36 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 9.0.x
-    
+
     - name: Restore dependencies
       run: dotnet restore
-    
+
     - name: Build
       run: dotnet build --configuration Release --no-restore
-    
+
     - name: Test
       run: dotnet test --configuration Release --no-build --verbosity normal
-    
+
+  publish:
+    if: github.event_name == 'release'
+    needs: build-and-test
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 9.0.x
+
+    - name: Set version from release tag
+      run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
+
+    - name: Restore dependencies
+      run: dotnet restore
+
     - name: Pack
-      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-      run: dotnet pack --configuration Release --no-build --output ./nupkgs
-    
+      run: dotnet pack --configuration Release -p:Version=${{ env.VERSION }} --output ./nupkgs
+
     - name: Publish to NuGet
-      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       run: dotnet nuget push ./nupkgs/*.nupkg --api-key ${{ secrets.PUBLISH_TOKEN }} --source https://api.nuget.org/v3/index.json

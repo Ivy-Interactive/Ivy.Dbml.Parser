@@ -12,4 +12,4 @@ public class Index
     public string? Type { get; set; }
     public string? Note { get; set; }
     public Dictionary<string, string> Settings { get; set; } = new();
-} 
+}

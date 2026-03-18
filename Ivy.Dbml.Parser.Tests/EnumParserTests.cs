@@ -103,4 +103,4 @@ enum grade {
         Assert.Equal("A-", enumObj.Values[2]);
         Assert.Equal("Not Yet Set", enumObj.Values[3]);
     }
-} 
+}

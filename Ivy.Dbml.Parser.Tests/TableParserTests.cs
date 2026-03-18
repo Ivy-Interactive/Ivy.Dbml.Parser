@@ -120,4 +120,4 @@ Table users {
         Assert.Equal("timestamp", column.Type);
         Assert.Equal("now()", column.DefaultValue);
     }
-} 
+}

@@ -17,4 +17,4 @@ namespace Ivy.Dbml.Parser.Parser
     {
         public MissingElementException(string message) : base(message) { }
     }
-} 
+}

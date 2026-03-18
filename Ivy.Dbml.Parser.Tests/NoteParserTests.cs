@@ -31,4 +31,4 @@ Table users {
         Assert.Equal("users", table.Name);
         Assert.Equal("Stores user data", table.Note);
     }
-} 
+}

@@ -68,13 +68,13 @@ Table users [settings: { collation: 'utf8mb4_unicode_ci' }] {
         var table = model.Tables[0];
 
         Assert.Equal("users", table.Name);
-        
+
         // Debug info
         var keys = string.Join(", ", table.Settings.Keys);
         Assert.True(table.Settings.ContainsKey("collation"), $"Settings keys are: {keys}");
         Assert.True(table.Settings.ContainsKey("engine"), $"Settings keys are: {keys}");
         Assert.True(table.Settings.ContainsKey("charset"), $"Settings keys are: {keys}");
-        
+
         Assert.Equal("utf8mb4_unicode_ci", table.Settings["collation"]);
         Assert.Equal("InnoDB", table.Settings["engine"]);
         Assert.Equal("utf8mb4", table.Settings["charset"]);
@@ -94,4 +94,4 @@ Table users 'User management table' {
         Assert.Equal("users", table.Name);
         Assert.Equal("User management table", table.Note);
     }
-} 
+}

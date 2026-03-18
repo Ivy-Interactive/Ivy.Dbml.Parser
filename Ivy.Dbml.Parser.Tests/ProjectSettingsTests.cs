@@ -70,13 +70,13 @@ Table users {
         var model = _parser.Parse(dbml);
 
         Assert.Equal("MyDatabase", model.ProjectName);
-        
+
         // Debug: Print out what keys are in the Settings dictionary
         var keys = string.Join(", ", model.Settings.Keys);
         Assert.True(model.Settings.ContainsKey("database_type"), $"Settings keys are: {keys}");
         Assert.True(model.Settings.ContainsKey("language"), $"Settings keys are: {keys}");
         Assert.True(model.Settings.ContainsKey("schema"), $"Settings keys are: {keys}");
-        
+
         Assert.Equal("postgres", model.Settings["database_type"]);
         Assert.Equal("postgresql", model.Settings["language"]);
         Assert.Equal("public", model.Settings["schema"]);
@@ -97,4 +97,4 @@ Table users {
         Assert.Equal("MyDatabase", model.ProjectName);
         Assert.Equal("A sample database project", model.Note);
     }
-} 
+}

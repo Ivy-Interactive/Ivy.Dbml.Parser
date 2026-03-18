@@ -76,4 +76,4 @@ Table users {
         Assert.Equal("My Database", model.ProjectName);
         Assert.Equal("A sample database with spaces", model.Note);
     }
-} 
+}

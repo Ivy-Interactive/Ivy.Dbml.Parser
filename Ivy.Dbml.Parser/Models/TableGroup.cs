@@ -8,4 +8,4 @@ public class TableGroup
     public string? Note { get; set; }
     public List<string> Tables { get; set; } = new();
     public Dictionary<string, string> Settings { get; set; } = new();
-} 
+}

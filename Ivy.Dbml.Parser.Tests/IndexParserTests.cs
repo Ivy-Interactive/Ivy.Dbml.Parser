@@ -135,4 +135,4 @@ Table users {
         Assert.Equal("email", index.Name);
         Assert.Equal("Email index for faster lookups", index.Note);
     }
-} 
+}
