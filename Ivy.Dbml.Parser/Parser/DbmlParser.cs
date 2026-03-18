@@ -37,7 +37,7 @@ public class DbmlParser
         if (content.Trim().StartsWith("Note: '''") && !content.Substring(content.IndexOf("'''") + 3).Contains("'''"))
         {
             var lineIndex = content.Split('\n').TakeWhile(l => !l.TrimStart().StartsWith("Note: '''")).Count();
-            throw new InvalidSyntaxException($"Invalid multi-line note syntax at line {lineIndex + 1}: {content.Split('\n')[lineIndex]}");
+            throw new InvalidSyntaxException($"Invalid multi-line note syntax at line {lineIndex + 1}: `{content.Split('\n')[lineIndex].Trim()}`. Multi-line notes must start with `'''` and end with `'''` on a separate line.");
         }
 
         for (int i = 0; i < lines.Count; i++)
@@ -96,7 +96,7 @@ public class DbmlParser
                 // Check for start of a multi-line note
                 if (trimmedLine.Contains("'''") && !Regex.IsMatch(trimmedLine, @"Note:\s*'''", RegexOptions.IgnoreCase))
                 {
-                    throw new InvalidSyntaxException($"Invalid multi-line note syntax at line {i + 1}: {line}");
+                    throw new InvalidSyntaxException($"Invalid multi-line note syntax at line {i + 1}: `{trimmedLine}`. Triple quotes `'''` can only appear in `Note: '''...'''` syntax.");
                 }
 
                 // Check for valid multi-line note start
@@ -114,7 +114,7 @@ public class DbmlParser
                     !trimmedLine.EndsWith("'''") &&
                     !lines.Skip(i + 1).Any(l => l.Contains("'''")))
                 {
-                    throw new InvalidSyntaxException($"Invalid multi-line note syntax at line {i + 1}: {line}");
+                    throw new InvalidSyntaxException($"Invalid multi-line note syntax at line {i + 1}: `{trimmedLine}`. Multi-line notes must start with `'''` and end with `'''` on a separate line. No closing `'''` found.");
                 }
 
                 if (trimmedLine.StartsWith("Table ", StringComparison.OrdinalIgnoreCase))
@@ -178,7 +178,7 @@ public class DbmlParser
                         }
                         else
                         {
-                            throw new InvalidSyntaxException($"Invalid note syntax at line {i + 1}: {line}");
+                            throw new InvalidSyntaxException($"Invalid note syntax at line {i + 1}: `{trimmedLine}`. Expected format: `Note: 'your note text'` or multi-line `Note: ''' ... '''`");
                         }
                     }
                 }
@@ -204,7 +204,8 @@ public class DbmlParser
                 }
                 else
                 {
-                    throw new MissingElementException($"Unexpected line at {i + 1}: {line}");
+                    var firstWord = trimmedLine.Split(' ', '{')[0].TrimEnd(':');
+                    throw new MissingElementException($"Unexpected line at {i + 1}: `{trimmedLine}`. Unrecognized declaration '{firstWord}'. Expected top-level keyword: Table, Enum, Ref, Project, TableGroup, Note");
                 }
             }
             catch (DbmlParsingException)
@@ -214,6 +215,298 @@ public class DbmlParser
         }
 
         return _model;
+    }
+
+    private static readonly HashSet<string> SupportedTypes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "int", "string", "DateTime", "Guid", "decimal", "bool",
+        "byte[]", "DateOnly", "TimeOnly", "DateTimeOffset",
+        "double", "float", "long", "short", "byte", "char",
+        "uint", "ulong", "ushort", "sbyte", "nvarchar", "varchar",
+        "text", "integer", "bigint", "smallint", "tinyint",
+        "real", "numeric", "money", "bit", "date", "time",
+        "timestamp", "uuid", "json", "jsonb", "boolean",
+        "serial", "bigserial", "smallserial", "bytea",
+    };
+
+    private static readonly HashSet<string> TopLevelKeywords = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Table", "Enum", "Ref", "Project", "TableGroup", "Note"
+    };
+
+    public DbmlParseResult Validate(string content)
+    {
+        var errors = new List<DbmlError>();
+        var lines = content.Split('\n').Select(l => l.TrimEnd()).ToList();
+        var tableNames = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var enumNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        bool inTable = false;
+        bool inEnum = false;
+        bool inTableGroup = false;
+        string? currentElementName = null;
+        string? currentElementType = null;
+        int currentElementStartLine = 0;
+        int braceDepth = 0;
+        int enumValueCount = 0;
+        int enumStartLine = 0;
+        string? enumName = null;
+
+        for (int i = 0; i < lines.Count; i++)
+        {
+            var line = lines[i];
+            var trimmed = line.TrimStart();
+            var lineNum = i + 1;
+
+            if (string.IsNullOrWhiteSpace(trimmed)) continue;
+
+            // Check for comments (not supported in DBML)
+            if (trimmed.StartsWith("//") || trimmed.StartsWith("/*") || trimmed.StartsWith("*"))
+            {
+                errors.Add(new DbmlError
+                {
+                    Line = lineNum,
+                    Message = $"Comments are not supported in DBML. Remove this line: `{trimmed}`",
+                    Severity = DbmlErrorSeverity.Error
+                });
+                continue;
+            }
+
+            // Check for multiple settings brackets: `] [`
+            if (Regex.IsMatch(trimmed, @"\]\s*\["))
+            {
+                var colName = trimmed.Split(' ')[0];
+                errors.Add(new DbmlError
+                {
+                    Line = lineNum,
+                    Message = $"Column '{colName}' has multiple settings brackets. Combine into one: e.g. `[not null, unique]`",
+                    Severity = DbmlErrorSeverity.Error
+                });
+                continue;
+            }
+
+            // Track opening braces
+            if (trimmed.Contains("{"))
+            {
+                // Check for table declaration
+                if (trimmed.StartsWith("Table ", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (inTable || inEnum)
+                    {
+                        errors.Add(new DbmlError
+                        {
+                            Line = lineNum,
+                            Message = $"Nested Table declaration inside {currentElementType} '{currentElementName}'. Close the previous block first.",
+                            Severity = DbmlErrorSeverity.Error
+                        });
+                        continue;
+                    }
+
+                    var tableMatch = Regex.Match(trimmed, @"Table\s+(?:([^\.]+)\.)?(?:""([^""]+)""|(\w+))", RegexOptions.IgnoreCase);
+                    if (tableMatch.Success)
+                    {
+                        var tName = tableMatch.Groups[2].Success ? tableMatch.Groups[2].Value : tableMatch.Groups[3].Value;
+                        if (tableNames.TryGetValue(tName, out var firstLine))
+                        {
+                            errors.Add(new DbmlError
+                            {
+                                Line = lineNum,
+                                Message = $"Table '{tName}' is already defined at line {firstLine}.",
+                                Severity = DbmlErrorSeverity.Error
+                            });
+                        }
+                        else
+                        {
+                            tableNames[tName] = lineNum;
+                        }
+                        currentElementName = tName;
+                    }
+
+                    inTable = true;
+                    currentElementType = "Table";
+                    currentElementStartLine = lineNum;
+                    braceDepth++;
+                }
+                else if (trimmed.StartsWith("enum ", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (inTable)
+                    {
+                        errors.Add(new DbmlError
+                        {
+                            Line = lineNum,
+                            Message = $"Enum declarations must be top-level, not inside table definitions. Move `{trimmed.TrimEnd()}` after all table definitions.",
+                            Severity = DbmlErrorSeverity.Error
+                        });
+                        continue;
+                    }
+
+                    var enumMatch = Regex.Match(trimmed, @"enum\s+(?:([^\.]+)\.)?(?:""([^""]+)""|(\w+))", RegexOptions.IgnoreCase);
+                    if (enumMatch.Success)
+                    {
+                        enumName = enumMatch.Groups[2].Success ? enumMatch.Groups[2].Value : enumMatch.Groups[3].Value;
+                        enumNames.Add(enumName);
+                    }
+
+                    inEnum = true;
+                    currentElementType = "Enum";
+                    currentElementName = enumName;
+                    currentElementStartLine = lineNum;
+                    enumStartLine = lineNum;
+                    enumValueCount = 0;
+                    braceDepth++;
+                }
+                else if (trimmed.StartsWith("TableGroup ", StringComparison.OrdinalIgnoreCase))
+                {
+                    inTableGroup = true;
+                    currentElementType = "TableGroup";
+                    var tgMatch = Regex.Match(trimmed, @"TableGroup\s+(?:""([^""]+)""|(\w+))", RegexOptions.IgnoreCase);
+                    currentElementName = tgMatch.Success ? (tgMatch.Groups[1].Success ? tgMatch.Groups[1].Value : tgMatch.Groups[2].Value) : "unknown";
+                    currentElementStartLine = lineNum;
+                    braceDepth++;
+                }
+                else if (trimmed.StartsWith("indexes", StringComparison.OrdinalIgnoreCase) ||
+                         trimmed.StartsWith("checks", StringComparison.OrdinalIgnoreCase))
+                {
+                    braceDepth++;
+                }
+                else if (trimmed.StartsWith("Project ", StringComparison.OrdinalIgnoreCase))
+                {
+                    braceDepth++;
+                }
+            }
+
+            // Check for ref inside table
+            if (inTable && braceDepth == 1 &&
+                (trimmed.StartsWith("Ref:", StringComparison.OrdinalIgnoreCase) ||
+                 trimmed.StartsWith("Ref ", StringComparison.OrdinalIgnoreCase)))
+            {
+                errors.Add(new DbmlError
+                {
+                    Line = lineNum,
+                    Message = $"Ref declarations must be top-level, not inside table definitions. Move `{trimmed.TrimEnd()}` after all table definitions.",
+                    Severity = DbmlErrorSeverity.Error
+                });
+                continue;
+            }
+
+            // Check for [nullable] instead of [null]
+            if (inTable && trimmed.Contains("[nullable]", StringComparison.OrdinalIgnoreCase))
+            {
+                errors.Add(new DbmlError
+                {
+                    Line = lineNum,
+                    Message = "Use `[null]` instead of `[nullable]`. DBML does not support `[nullable]`.",
+                    Severity = DbmlErrorSeverity.Error
+                });
+                continue;
+            }
+
+            // Count enum values
+            if (inEnum && !trimmed.Contains("{") && trimmed != "}")
+            {
+                enumValueCount++;
+            }
+
+            // Validate column types inside tables
+            if (inTable && braceDepth == 1 && !trimmed.Contains("{") && trimmed != "}" &&
+                !trimmed.StartsWith("Note", StringComparison.OrdinalIgnoreCase) &&
+                !trimmed.StartsWith("indexes", StringComparison.OrdinalIgnoreCase) &&
+                !trimmed.StartsWith("checks", StringComparison.OrdinalIgnoreCase))
+            {
+                var colMatch = Regex.Match(trimmed, @"^(\w+)\s+(\w+(?:\[\])?)(?:\(|$|\s|\[)", RegexOptions.IgnoreCase);
+                if (colMatch.Success)
+                {
+                    var colType = colMatch.Groups[2].Value;
+                    if (!SupportedTypes.Contains(colType) && !colType.EndsWith("[]") && !enumNames.Contains(colType))
+                    {
+                        errors.Add(new DbmlError
+                        {
+                            Line = lineNum,
+                            Message = $"Unknown column type '{colType}'. Supported types: int, string, DateTime, Guid, decimal, bool, byte[], DateOnly, TimeOnly, DateTimeOffset, double, float, long",
+                            Severity = DbmlErrorSeverity.Warning
+                        });
+                    }
+                }
+            }
+
+            // Track closing braces
+            if (trimmed == "}")
+            {
+                braceDepth--;
+                if (braceDepth == 0)
+                {
+                    // Check for empty enum
+                    if (inEnum && enumValueCount == 0)
+                    {
+                        errors.Add(new DbmlError
+                        {
+                            Line = enumStartLine,
+                            Message = $"Enum '{enumName}' has no values. Either add values or use a `string` column type instead.",
+                            Severity = DbmlErrorSeverity.Error
+                        });
+                    }
+
+                    inTable = false;
+                    inEnum = false;
+                    inTableGroup = false;
+                    currentElementName = null;
+                    currentElementType = null;
+                }
+            }
+
+            // Check for unknown top-level keywords
+            if (!inTable && !inEnum && !inTableGroup && braceDepth == 0 &&
+                trimmed != "}" && !string.IsNullOrWhiteSpace(trimmed))
+            {
+                var firstWord = trimmed.Split(' ', '{')[0].TrimEnd(':');
+                if (!TopLevelKeywords.Contains(firstWord) &&
+                    !trimmed.StartsWith("Note:", StringComparison.OrdinalIgnoreCase))
+                {
+                    errors.Add(new DbmlError
+                    {
+                        Line = lineNum,
+                        Message = $"Unrecognized declaration '{firstWord}'. Expected: Table, Enum, Ref, Project, TableGroup, Note",
+                        Severity = DbmlErrorSeverity.Error
+                    });
+                }
+            }
+        }
+
+        // Check for unclosed elements
+        if (braceDepth > 0 && currentElementType != null)
+        {
+            errors.Add(new DbmlError
+            {
+                Line = currentElementStartLine,
+                Message = $"Unclosed {currentElementType} '{currentElementName}' — missing closing brace `}}`",
+                Severity = DbmlErrorSeverity.Error
+            });
+        }
+
+        // If no errors, try to parse and return the model
+        DbmlModel? model = null;
+        if (errors.Count == 0)
+        {
+            try
+            {
+                model = Parse(content);
+            }
+            catch (DbmlParsingException ex)
+            {
+                errors.Add(new DbmlError
+                {
+                    Line = 0,
+                    Message = ex.Message,
+                    Severity = DbmlErrorSeverity.Error
+                });
+            }
+        }
+
+        return new DbmlParseResult
+        {
+            Model = model,
+            Errors = errors
+        };
     }
 
     private void ParseProject(string line)
