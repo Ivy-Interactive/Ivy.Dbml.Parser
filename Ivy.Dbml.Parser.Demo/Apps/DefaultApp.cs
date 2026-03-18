@@ -1,5 +1,4 @@
-﻿using System.Text.Json;
-using System.Text.Json.Nodes;
+using System.Text.Json;
 using Ivy.Dbml.Parser.Parser;
 
 namespace Ivy.Dbml.Parser.Demo.Apps;
@@ -7,7 +6,7 @@ namespace Ivy.Dbml.Parser.Demo.Apps;
 [App()]
 public class DefaultApp : ViewBase
 {
-    private readonly string _initialDbml = 
+    private readonly string _initialDbml =
         """
         Table Person {
             id integer [pk, increment]
@@ -17,13 +16,13 @@ public class DefaultApp : ViewBase
             updated_at datetime
         }
         """;
-    
+
     public override object? Build()
     {
         var dbml = UseState(_initialDbml);
-        var model = UseState<JsonNode?>();
+        var model = UseState<string?>();
         var error = UseState<Exception?>();
-        
+
         UseEffect(() =>
         {
             try
@@ -40,18 +39,18 @@ public class DefaultApp : ViewBase
             }
             catch (Exception e)
             {
-                model.Set((JsonNode?)null!);
+                model.Set((string?)null!);
                 error.Set(e);
             }
-        }, [EffectTrigger.AfterInit(), dbml]);
-        
-        var ux = new ResizeablePanelGroup(
-            new ResizeablePanel(25,
+        }, [EffectTrigger.OnMount(), dbml]);
+
+        var ux = new ResizablePanelGroup(
+            new ResizablePanel(Size.Fraction(0.25f),
                 Layout.Horizontal().Height(Size.Full()).RemoveParentPadding()
                 | dbml.ToCodeInput().Height(Size.Full()).Width(Size.Full()).Language(Languages.Dbml)),
-            new ResizeablePanel(75, Layout.Vertical() | model | error)
+            new ResizablePanel(Size.Fraction(0.75f), Layout.Vertical() | model | error)
         ).Height(Size.Screen());
-        
+
         return ux;
     }
 }
